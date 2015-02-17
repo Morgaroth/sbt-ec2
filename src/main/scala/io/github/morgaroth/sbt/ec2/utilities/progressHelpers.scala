@@ -1,4 +1,4 @@
-package io.github.morgaroth.sbt.ec2
+package io.github.morgaroth.sbt.ec2.utilities
 
 import java.io.File
 

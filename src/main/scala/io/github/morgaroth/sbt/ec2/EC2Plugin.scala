@@ -1,18 +1,16 @@
 package io.github.morgaroth.sbt.ec2
 
-import com.amazonaws.auth.{BasicAWSCredentials, InstanceProfileCredentialsProvider}
-import com.amazonaws.internal.StaticCredentialsProvider
-import com.amazonaws.regions.Regions
-import com.amazonaws.services.ec2.AmazonEC2Client
-import com.amazonaws.services.ec2.model.{DescribeInstancesRequest, DescribeInstancesResult, Filter, Instance}
-import com.amazonaws.{ClientConfiguration, Protocol}
+import com.amazonaws.services.ec2.model.InstanceStateName.Running
+import com.amazonaws.services.ec2.model.{DescribeInstancesRequest, Instance}
+import io.github.morgaroth.sbt.ec2.utilities.filters._
+import io.github.morgaroth.sbt.ec2.utilities.{RichAmazonModelsSupport, progressHelpers}
 import sbt.Keys._
 import sbt._
-import sbt.complete.Parsers.spaceDelimited
+import sbt.complete.Parser._
+import sbt.complete.Parsers._
 
 import scala.collection.JavaConverters._
 import scala.language.reflectiveCalls
-import scala.util.Try
 
 /**
  * EC2Plugin is a simple sbt plugin that can manipulate objects on Amazon EC2.
@@ -54,7 +52,7 @@ import scala.util.Try
  *
  * Please select the nested `S3` object link, below, for additional information on the available tasks.
  */
-object EC2Plugin extends AutoPlugin with progressHelpers {
+object EC2Plugin extends AutoPlugin with progressHelpers with RichAmazonModelsSupport with ec2Connection with EC2PluginHelpers with findingInstances {
 
   /**
    * This nested object defines the sbt keys made available by the EC2Plugin: read here for tasks info.
@@ -83,7 +81,8 @@ object EC2Plugin extends AutoPlugin with progressHelpers {
      */
     val ec2PrintRunning = taskKey[Seq[Instance]]("Prints list of running instances.")
 
-    val ec2Filter = inputKey[Unit]("Filters instances")
+    val ec2FindByNames = inputKey[List[Instance]]("Filters instances")
+    val ec2FindByName = inputKey[List[Instance]]("Filters instances")
 
     /**
      * The task "s3Download" downloads a set of files from a specificed S3 bucket.
@@ -152,67 +151,12 @@ object EC2Plugin extends AutoPlugin with progressHelpers {
 
   import io.github.morgaroth.sbt.ec2.EC2Plugin.autoImport._
 
-  type Bucket = String
-
-  private def getClient(creds: Seq[Credentials], regionName: String, useInstanceProfileCredentials: Boolean): AmazonEC2Client = {
-    val credentialsProvider = getCredentials(creds, regionName, useInstanceProfileCredentials)._1
-    Try(Regions.fromName(regionName)).map { region =>
-      val cli = new AmazonEC2Client(credentialsProvider, new ClientConfiguration().withProtocol(Protocol.HTTPS))
-      cli.setRegion(region)
-      cli.setEndpoint("ec2.%s.amazonaws.com".format(region.getName))
-      cli
-    }.getOrElse {
-      sys.error("Could not recover EC2 region from name \"%s\".".format(regionName))
-    }
-  }
-
-  def getCredentials(creds: Seq[Credentials], region: String, useInstanceProfileCredentials: Boolean) = {
-    Credentials.forHost(creds, region) match {
-      case Some(cred) => new StaticCredentialsProvider(new BasicAWSCredentials(cred.userName, cred.passwd)) -> Left(cred)
-      case None if useInstanceProfileCredentials =>
-        val instance = new InstanceProfileCredentialsProvider
-        instance -> Right(instance) // for get both amazon credentials and direct sbt credentials too
-      case _ => sys.error("Could not find EC2 credentials for region (passed in credentials as host): %s.".format(region))
-    }
-  }
-
-  private def ec2InitTask[Item, OperationResult](thisTask: TaskKey[OperationResult],
-                                                 operation: (AmazonEC2Client, Boolean) => OperationResult,
-                                                 msgInfo: OperationResult => Option[String] = (s: OperationResult) => None,
-                                                 msgDebug: OperationResult => Option[String] = (s: OperationResult) => None
-                                                  ): Def.Initialize[Task[OperationResult]] =
-    (credentials in thisTask, ec2Region in thisTask, ec2Progress in thisTask, ec2UseInstanceProfileCredentials in thisTask, streams) map {
-      (creds, region, progress, useInstanceCreds, streams) =>
-        val client = getClient(creds, region, useInstanceCreds)
-        val result = operation(client, progress)
-        msgDebug(result).map(streams.log.debug)
-        msgInfo(result).map(streams.log.info)
-        result
-    }
-
-  def printCredentials: Def.Initialize[Task[Unit]] = {
-    (credentials, streams, ec2Region, ec2UseInstanceProfileCredentials) map { (creds, streams, host, useInstanceProfileCredentials) =>
-      val credentials = getCredentials(creds, host, useInstanceProfileCredentials)._2.left
-      credentials.map { cred =>
-        streams.log.info("\taccess id:\t%s".format(cred.userName.replaceFirst( """.{15}""", "*****")))
-        streams.log.info("\taccess key:\t%s".format(cred.passwd.replaceFirst( """.{35}""", "*****")))
-      }
-    }
-  }
-
-  /*
-   * Include the line {{{s3Settings}}} in your build.sbt file, in order to import the tasks defined by this S3 plugin.
-   */
-
   override def projectSettings = Seq(
 
-    ec2ListRunning <<= ec2InitTask[String, Seq[Instance]](ec2ListRunning, {
+    ec2ListRunning <<= ec2InitTask[Seq[Instance]](ec2ListRunning, {
       case (client, progress) =>
-        val request = new DescribeInstancesRequest().withFilters(new Filter("instance-state-name", List("running").asJava))
-        val a: DescribeInstancesResult = client.describeInstances(request)
-        val b = a.getReservations.asScala.map(_.getInstances.asScala).flatten.toSeq
-        //a.getReservations.asScala.map(_.getInstances.asScala).flatten.map(_.getTags.asScala.find(_.getKey == "Name").map(_.getValue).getOrElse("unnamed")).mkString("\n"))
-        b
+        val request = new DescribeInstancesRequest().withFilters(InstanceState(Running))
+        client.describeInstances(request).readAllInstances
     }, msgDebug = { result => Some("Received %d instances".format(result.size))}
     ),
     ec2PrintRunning <<= Def.taskDyn {
@@ -222,37 +166,17 @@ object EC2Plugin extends AutoPlugin with progressHelpers {
         instances
       }
     },
-    ec2Filter := {
-      val args = spaceDelimited("<args>").parsed
-      (streams in ec2Filter).value.log.info("checked %s".format(args))
-    },
-
-    //    s3Download <<= s3InitTask[(File, String), DownloadResult](s3Download, mappings, { case (client, bucket, (file, key), progress) =>
-    //      val request = new GetObjectRequest(bucket, key)
-    //      val objectMetadata = client.getObjectMetadata(bucket, key)
-    //      if (progress) addProgressListener(request, objectMetadata.getContentLength, key)
-    //      client.getObject(request, file)
-    //      DownloadResult(file)
-    //    }, {
-    //      case (bucket, (file, key)) => "Downloading %s as %s from %s".format(file.getAbsolutePath, key, bucket)
-    //    }, {
-    //      (bucket, mapps) => "Downloaded %d files from the S3 bucket \"%s\".".format(mapps.length, bucket)
-    //    }
-    //    ),
-    //
-    //    s3Delete <<= s3InitTask[String, Unit](s3Delete, s3Keys, {
-    //      (client, bucket, key, _) => client.deleteObject(bucket, key)
-    //    }, {
-    //      (bucket, key) => "Deleting %s from %s.".format(key, bucket)
-    //    }, {
-    //      (bucket, keys1) => "Deleted %d objects from the S3 bucket \"%s\".".format(keys1.length, bucket)
-    //    }
-    //    ),
+    ec2FindByName := Def.inputTaskDyn {
+      val name = ((token(Space) ~> token(StringBasic, "<name>")) <~ SpaceClass.*).parsed
+      findInstancesByName(name, ec2FindByName)
+    }.evaluated,
+    ec2FindByNames := Def.inputTaskDyn {
+      val args = spaceDelimited("<names>").parsed
+      findInstancesByNames(args, ec2FindByNames)
+    }.evaluated,
 
     ec2PrintCredentials <<= printCredentials,
-
     ec2Region := "",
-
     ec2Progress := true,
     ec2UseInstanceProfileCredentials := false
   )

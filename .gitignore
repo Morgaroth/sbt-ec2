@@ -80,3 +80,5 @@ crashlytics.properties
 crashlytics-build.properties
 
 
+
+test-project/.ec2credentials
