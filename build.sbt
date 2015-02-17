@@ -23,25 +23,16 @@ releaseSettings
 
 sonatypeSettings
 
-val publishArtifactsLocally = ReleaseStep(action = (st: State) => {
+import SonatypeKeys.sonatypeReleaseAll
+
+def singleTaskReleaseStep(task: TaskKey[_]) = ReleaseStep(action = (st: State) => {
   val extracted = st.extract
   val ref = extracted.get(thisProjectRef)
-  extracted.runAggregated(publishLocal in ThisBuild in ref, st)
+  extracted.runAggregated(task in ThisBuild in ref, st)
 })
-
-val publishArtifactsSigned = ReleaseStep(action = (st: State) => {
-  val extracted = st.extract
-  val ref = extracted.get(thisProjectRef)
-  extracted.runAggregated(publishSigned in ThisBuild in ref, st)
-})
-
-
-val finishReleseAtSonatype = ReleaseStep(action = (st: State) => {
-  import SonatypeKeys.sonatypeReleaseAll
-  val extracted = st.extract
-  val ref = extracted.get(thisProjectRef)
-  extracted.runAggregated(sonatypeReleaseAll in ThisBuild in ref, st)
-})
+val publishArtifactsLocally = singleTaskReleaseStep(publishLocal)
+val publishArtifactsSigned = singleTaskReleaseStep(publishSigned)
+val finishReleseAtSonatype = singleTaskReleaseStep(sonatypeReleaseAll)
 
 ReleaseKeys.releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies, // : ReleaseStep
@@ -59,8 +50,9 @@ ReleaseKeys.releaseProcess := Seq[ReleaseStep](
 
 scriptedSettings
 
-scriptedLaunchOpts := { scriptedLaunchOpts.value ++
-  Seq("-Xmx1024M", "-XX:MaxPermSize=256M", "-Dplugin.version=" + version.value)
+scriptedLaunchOpts := {
+  scriptedLaunchOpts.value ++
+    Seq("-Xmx1024M", "-XX:MaxPermSize=256M", "-Dplugin.version=" + version.value)
 }
 
 scriptedBufferLog := false

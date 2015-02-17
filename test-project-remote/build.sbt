@@ -6,7 +6,7 @@ version := "0.1.0"
 
 credentials += Credentials(baseDirectory.value / ".ec2credentials")
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.11.5"
 
 ec2Region := "eu-west-1"
 
