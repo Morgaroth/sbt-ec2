@@ -1,0 +1,1 @@
+addSbtPlugin("io.github.morgaroth" % "sbt-ec2" % "0.1.0")
