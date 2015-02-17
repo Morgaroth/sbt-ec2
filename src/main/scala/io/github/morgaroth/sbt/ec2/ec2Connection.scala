@@ -5,7 +5,7 @@ import com.amazonaws.internal.StaticCredentialsProvider
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.ec2.AmazonEC2Client
 import com.amazonaws.{ClientConfiguration, Protocol}
-import io.github.morgaroth.sbt.ec2.EC2Plugin.autoImport._
+import io.github.morgaroth.sbt.ec2.keys._
 import sbt.Keys._
 import sbt.{Credentials, Def, Task}
 

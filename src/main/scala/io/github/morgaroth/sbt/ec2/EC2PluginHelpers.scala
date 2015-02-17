@@ -1,13 +1,12 @@
 package io.github.morgaroth.sbt.ec2
 
 import com.amazonaws.services.ec2.AmazonEC2Client
-import io.github.morgaroth.sbt.ec2.EC2Plugin.autoImport._
+import io.github.morgaroth.sbt.ec2.keys._
 import sbt.Keys._
 import sbt._
 
-trait EC2PluginHelpers {
-  this: ec2Connection =>
-  def ec2InitTask[OperationResult](thisTask: ScopedTaskable[OperationResult],
+trait EC2PluginHelpers extends ec2Connection {
+  def ec2InitTask[OperationResult](thisTask: TaskKey[OperationResult],
                                    operation: (AmazonEC2Client, Boolean) => OperationResult,
                                    msgInfo: OperationResult => Option[String] = (s: OperationResult) => None,
                                    msgDebug: OperationResult => Option[String] = (s: OperationResult) => None
