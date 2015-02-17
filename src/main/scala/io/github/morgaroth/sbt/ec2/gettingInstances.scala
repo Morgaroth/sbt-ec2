@@ -18,6 +18,6 @@ trait gettingInstances {
   def getInstancesTask = Def.inputTaskDyn {
     val args = spaceDelimited("<names>").parsed.toList
     getInstances(args, ec2GetInstances)
-  }.evaluated
+  }
 
 }

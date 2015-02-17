@@ -70,7 +70,7 @@ with gettingInstances {
       findInstancesByNames(args, ec2FindByNames)
     }.evaluated,
     ec2GettingStrategy := GettingInstancesStrategies.NameEqualStrategy,
-    ec2GetInstances := getInstancesTask,
+    ec2GetInstances := getInstancesTask.evaluated,
     ec2PrintCredentials <<= printCredentials,
     ec2Region := "",
     ec2Progress := true,
