@@ -4,6 +4,7 @@ import com.amazonaws.services.ec2.model.Instance
 import sbt._
 
 object keys extends GettingInstancesStrategies {
+
   /**
    * The task "ec2ListRunning" return list of running machines.
    * Depends on:
@@ -27,16 +28,42 @@ object keys extends GettingInstancesStrategies {
   val ec2PrintRunning = taskKey[Seq[Instance]]("Prints list of running instances.")
 
 
-  val ec2FindByNames = inputKey[List[Instance]]("Filters instances")
+  /**
+   * The task "{{{ec2FindByName}}}" finds running instances which name contains provided name, or provided name contain instance's name
+   * It is week match, for possibly wide list of results
+   * Example use:
+   * {{{sbt ec2FindByNames my-server backend-stg}}}
+   *
+   *
+   * It rests on access credentials described in {{{ec2ListRunning}}}
+   */
   val ec2FindByName = inputKey[List[Instance]]("Filters instances")
 
+  /**
+   * The same working logic as {{{ec2FindByName}}} but for more than one query name
+   * Example use:
+   * {{{sbt ec2FindByNames my-server backend-stg}}}
+   */
+  val ec2FindByNames = inputKey[List[Instance]]("Filters instances")
+
+  /**
+   * Setting key for Getting instances strategy, getting strategies are described in readme. Look at it.
+   */
   val ec2GettingStrategy = settingKey[GettingInstancesStrategy]("Sets strategy used during getting instances.")
+
+
+  /**
+   * The task "{{{ec2GetInstances}}}" finds running instances with names as provided in query, restricted selecting of ec2 instances
+   * is done by getting instances strategy. For more info look at documentation in readme.
+   *
+   * It rests on access credentials described in {{{ec2ListRunning}}}
+   */
   val ec2GetInstances = inputKey[Option[List[Instance]]]("Returns running instances that strategy accepts.")
 
   /**
-   * TODO
+   * Specifies region to which plugin should connect.
    */
-  val ec2Region = settingKey[String]("Host used by the S3 operation, either \"mybucket.s3.amazonaws.com\" or \"mybucket\".")
+  val ec2Region = settingKey[String]("AWS region used for operations.")
 
   /**
    * If you set "progress" to true, a progress indicator will be displayed while the individual files are uploaded or downloaded.

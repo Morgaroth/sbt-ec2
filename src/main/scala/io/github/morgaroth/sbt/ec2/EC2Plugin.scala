@@ -13,35 +13,28 @@ import scala.collection.JavaConverters._
 import scala.language.reflectiveCalls
 
 /**
- * EC2Plugin is a simple sbt plugin that can manipulate objects on Amazon EC2.
+ * EC2Plugin is a simple sbt plugin that can looking for running instances on Amazon EC2.
  *
  * == Example ==
- * Here is a complete example:
- *
- * - project/plugin.sbt:
- * {{{addSbtPlugin("io.github.morgaroth" % "sbt-ec2" % "0.1")}}}
+ * Here is a complete minimal example:
  *
  * - build.sbt:
  * {{{
+ * enablePlugins(EC2Plugin)
  *
- * host in  := "s3sbt-test.s3.amazonaws.com"
+ * ec2Region := "eu-west-1"
  *
- * credentials += Credentials(Path.userHome / ".s3credentials")
+ * credentials += Credentials(Path.userHome / ".ec2Credentials")
+ *
  * }}}
  *
- * - ~/.s3credentials:
+ * - ~/.ec2Credentials:
  * {{{
- * realm=Amazon S3
- * host=s3sbt-test.s3.amazonaws.com
+ * realm=Amazon EC2
+ * host=eu-west-1
  * user=<Access Key ID>
  * password=<Secret Access Key>
  * }}}
- *
- * Just create two sample files called "a" and "b" in the same directory that contains build.sbt,
- * then try:
- * {{{$ sbt s3-upload}}}
- *
- * Please select the nested `S3` object link, below, for additional information on the available tasks.
  */
 object EC2Plugin extends AutoPlugin with progressHelpers with RichAmazonModelsSupport with ec2Connection with EC2PluginHelpers with findingInstances
 with gettingInstances {
