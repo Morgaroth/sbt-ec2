@@ -55,7 +55,7 @@ so return possibly wide range of results, useful in manual executing
 * ec2Get&#42; finds instances by names but returns instances list which is filtered using some filtering strategy, helpful when You want to find some insances in restricted way, for this You can use:
    * one of predefined strategy from  (all of equalities in predefined strategies are case sensitive):
     * **NameEqualStrategy** - defaut, returns only instances with names exacly equal provided query names
-     ```scala
+    ```scala
      // since instance name doesn't have to be unique, You can have more instances with the same name
      instances in EC2: my-simple-server, my-simple-server, simple-server, server
      ec2GettingStategy := NameEqualStrategy
