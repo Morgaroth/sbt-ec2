@@ -2,7 +2,7 @@
 
 # sbt-ec2
 
-Sbt plugin for managing runing instances on Amazon EC2
+Sbt plugin for managing running instances on Amazon EC2
 
 ## Setup plugin
 
