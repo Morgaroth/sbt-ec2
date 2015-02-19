@@ -8,7 +8,6 @@
 .history
 .lib/
 dist/*
-target/
 lib_managed/
 src_managed/
 project/boot/
@@ -23,13 +22,7 @@ project/plugins/project/
 # Simple Build Tool
 # http://www.scala-sbt.org/release/docs/Getting-Started/Directories.html#configuring-version-control
 
-target/
-lib_managed/
-src_managed/
-project/boot/
-.history
-.cache
-
+/target
 
 ### JetBrains template
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm
@@ -83,3 +76,7 @@ crashlytics-build.properties
 
 test-project/.ec2credentials
 test-project-remote/.ec2credentials
+test-project-scala/.ec2credentials
+test-project-scala/target
+test-project-scala/project/target
+test-project-scala/project/project

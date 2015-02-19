@@ -1,9 +1,41 @@
 [![Stories in In progress](https://badge.waffle.io/morgaroth/sbt-ec2.png?label=In%20Progress&title=In%20Progress)](https://waffle.io/morgaroth/sbt-ec2)  [![Stories in Ready to release](https://badge.waffle.io/morgaroth/sbt-ec2.png?label=Ready%20to%20release&title=Ready%20to%20release)](https://waffle.io/morgaroth/sbt-ec2)
 
 # sbt-ec2
-Sbt plugin for managing EC2
 
+Sbt plugin for managing runing instances on Amazon EC2
 
+## Setup plugin
+
+1 Create credentials file, e.g. in `$HOME/.ec2Credentials`
+
+```
+realm=Amazon EC2
+host=<AWS Region>
+user=<Access Key ID>
+password=<Secret Access Key>
+```
+
+2 Add to Your project/plugins.sbt
+
+```
+addSbtPlugin("io.github.morgaroth" % "sbt-ec2" % "0.1.0")
+```
+
+3 Add EC2Plugin (as autoplugin) to project definition:
+
+```
+// enable plugin
+enablePlugins(EC2Plugin)
+
+// define to which region plugin should connect
+// must be the same as specified in credentials (.ec2Credentials) file as 'host' field
+ec2Region := "eu-west-1"
+
+// add previously created credentials file
+credentials += Credentials(Path.userHome / ".ec2Credentials")
+```
+
+## Documentation
 ### Getting List of Running Instances
 
 You can get list of running instances using one of tasks:
